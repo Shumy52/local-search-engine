@@ -1,17 +1,17 @@
-from Code.DBManager import DBManager
-from Code.FileIndexer import FileIndexer
-from Code.SearchEngine import FileSearcher
+from DBManager import DBManager
+from FileIndexer import FileIndexer
+from SearchEngine import FileSearcher
 
 def main():
     db = DBManager() # Create a connection ONCE 
     indexer = FileIndexer(db) # Pass it on...
-    # searcher = FileSearcher(db) 
+    searcher = FileSearcher(db) 
 
-    print("Dicks")
     # Test code:
     indexer.index_path(r"C:\Users\Shumy\Documents\Projects")
+    results = searcher.search_prompt(".py")
 
-    # The user input handling will also be taken care of here...
+    print(results)
 
 if __name__ == "__main__":
     main()

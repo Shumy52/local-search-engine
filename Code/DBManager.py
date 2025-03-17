@@ -11,9 +11,11 @@ class DBManager:
                                      password="postgres",
                                      port=5432)
         self.cursor = self.conn.cursor()
+
     
-    def add_file(self, file_data):
-        """Add a file to the database along with its keywords"""
+    
+    def add_file(self, file_data) -> bool: 
+        """Add a file to the database along with its keywords. Returns true for success"""
         try:
             # Check file exists
             self.cursor.execute("SELECT id FROM files WHERE path = %s", (file_data['path'],))
@@ -73,38 +75,71 @@ class DBManager:
                     """, (file_id, word))
             
             self.conn.commit()
-            return file_id
-        except Exception as e:
-            self.conn.rollback()
-            print(f"Error adding file to database: {e}")
-            return None
-    
-    def execute_query(self, query, params=None):
-        try:
-            self.cursor.execute(query, params or ())
-            self.conn.commit()
             return True
         except Exception as e:
             self.conn.rollback()
-            print(f"Query execution failed: {e}")
+            print(f"Error adding file to database: {e}")
             return False
-            
-    def fetch_one(self, query, params=None):
+
+    def search_by_date(self, start_date=None, end_date=None) -> list:
+        pass
+
+    def search_by_extension(self, extension) -> list:
+        """
+        Search files by extension
+        
+        Args:
+            extension: String extension to search for (without dot)
+        
+        Returns:
+            List of paths to matching files
+        """
         try:
-            self.cursor.execute(query, params or ())
-            return self.cursor.fetchone()
-        except Exception as e:
-            print(f"Error fetching one record: {e}")
-            return None
+            query = "SELECT path FROM files WHERE extension = %s"
             
-    def fetch_all(self, query, params=None):
-        try:
-            self.cursor.execute(query, params or ())
-            return self.cursor.fetchall()
+            self.cursor.execute(query, (extension,))
+            results = self.cursor.fetchall()
+            
+            # Return just the list of paths
+            return [row[0] for row in results]
         except Exception as e:
-            print(f"Error fetching all records: {e}")
+            print(f"Error searching by extension: {e}")
             return []
+
+    def search_by_content(self, search_term) -> list:
+        """
+        Search files by filename, preview content and keywords
+        
+        Args:
+            search_term: Term to search for
+        
+        Returns:
+            List of paths to matching files
+        """
+        try:
+            search_term = f'%{search_term}%' # This will search for the term in the middle of other terms
             
+            # Search in filename, preview and also by matching keywords
+            query = """
+            SELECT DISTINCT f.path 
+            FROM files f
+            LEFT JOIN file_keywords k ON f.id = k.file_id
+            WHERE 
+                f.filename ILIKE %s OR 
+                f.preview ILIKE %s OR 
+                f.content ILIKE %s OR
+                k.word ILIKE %s
+            """
+            
+            self.cursor.execute(query, (search_term, search_term, search_term, search_term))
+            results = self.cursor.fetchall()
+            
+            # Return just the list of paths
+            return [row[0] for row in results]
+        except Exception as e:
+            print(f"Error searching by content: {e}")
+            return []
+    
     def close(self):
         if self.cursor:
             self.cursor.close()
