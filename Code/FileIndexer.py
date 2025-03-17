@@ -9,6 +9,7 @@ class FileIndexer:
         self.db = db # Get database instance from main
 
     def index_path(self, path):
+        """Indexes recursively a folder and all the files and subfolders in it"""
         # I'm smelling recursivity... 
         
         # This is a Path object from the lib imported above  
@@ -17,7 +18,6 @@ class FileIndexer:
         for p in path.iterdir():
 
             if p.is_file():
-                # TODO: Add to DB the file
                 
                 try:
                         file_data = {
@@ -45,9 +45,10 @@ class FileIndexer:
                                 stopwords = {'the', 'a', 'an', 'in', 'on', 'at', 'to', 'for', 'of', 'and', 'or', 'but', 
                                             'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has', 'had', 
                                             'do', 'does', 'did', 'this', 'that', 'these', 'those', 'i', 'you', 'he', 
-                                            'she', 'it', 'we', 'they', 'with', 'by', 'as', 'not'}
+                                            'she', 'it', 'we', 'they', 'with', 'by', 'as', 'not', 'what', 'from'}
                                 words = re.findall(r'\b[a-zA-Z]{3,}\b', content.lower())
-                                important_words = [word for word in words if word not in stopwords]
+                                important_words = [word for word in words if word not in stopwords] 
+                                # I didn't learn haskell for nothing, LIST COMPREHENSION
                                 word_counts = Counter(important_words)
                                 file_data['top_words'] = [word for word, _ in word_counts.most_common(5)]
                                 

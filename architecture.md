@@ -14,7 +14,7 @@ User --> "Local File Search System" : Runs a query
 
 ### Explanation
 
-* We have a single actor, being a generic user, not authorization is done, what will interact with a "search engine" which will in turn interact with the filesystem of the OS it will run on. 
+* We have a single actor, being a generic user, not authorization/authentication is done, who will interact with a "search engine" which will in turn interact with the filesystem of the OS it will run on. 
 * (I'm planning to make this work on both Win and Unix, since development will be done on both... long story)
 
 ## 2. Containers diagram
@@ -45,18 +45,15 @@ Indexer --> "OS Filesystem" : Retrieves data
 @startuml
 package "Local File Search System" {
     class FileIndexer {
-        +index_directory()
-        +store_file()
+        +index_path()
     }
     
     class DBManager {
-        +connect()
-        +insert_file()
-        +query_files()
+        +add_file()      
     }
     
     class SearchEngine {
-        +search()
+        +search_prompt()
     }
     
     FileIndexer --> DBManager : Stores file content
