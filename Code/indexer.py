@@ -45,7 +45,7 @@ class FileIndexer:
                                 stopwords = {'the', 'a', 'an', 'in', 'on', 'at', 'to', 'for', 'of', 'and', 'or', 'but', 
                                             'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has', 'had', 
                                             'do', 'does', 'did', 'this', 'that', 'these', 'those', 'i', 'you', 'he', 
-                                            'she', 'it', 'we', 'they', 'with', 'by', 'as', 'not'}
+                                            'she', 'it', 'we', 'they', 'with', 'by', 'as', 'not', 'what', 'from'}
                                 words = re.findall(r'\b[a-zA-Z]{3,}\b', content.lower())
                                 important_words = [word for word in words if word not in stopwords]
                                 word_counts = Counter(important_words)
