@@ -19,7 +19,7 @@ class DBManager:
         try:
             # Check file exists
             self.cursor.execute("SELECT id FROM files WHERE path = %s", (file_data['path'],))
-            print("I've already found file ", file_data['path'])
+            # print("I've already found file ", file_data['path'])
             existing = self.cursor.fetchone()
             
             # Update
@@ -49,7 +49,7 @@ class DBManager:
                 # Clear keywords, will be updated below            
                 self.cursor.execute("DELETE FROM file_keywords WHERE file_id = %s", (file_id,))
             else:
-                print("I've entered a new file ", file_data['path'])
+                # print("I've entered a new file ", file_data['path'])
                 self.cursor.execute("""
                 INSERT INTO files (path, filename, extension, size, modified, created, preview, content)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
@@ -92,16 +92,16 @@ class DBManager:
             extension: String extension to search for (without dot)
         
         Returns:
-            List of paths to matching files
+            List of dictionaries with filename and path of matching files
         """
         try:
-            query = "SELECT path FROM files WHERE extension = %s"
+            query = "SELECT filename, path FROM files WHERE extension = %s"
             
             self.cursor.execute(query, (extension,))
             results = self.cursor.fetchall()
             
-            # Return just the list of paths
-            return [row[0] for row in results]
+            # Return list of dictionaries with filename and path
+            return [{"filename": row[0], "path": row[1]} for row in results]
         except Exception as e:
             print(f"Error searching by extension: {e}")
             return []
@@ -114,14 +114,14 @@ class DBManager:
             search_term: Term to search for
         
         Returns:
-            List of paths to matching files
+            List of dictionaries with filename and path of matching files
         """
         try:
             search_term = f'%{search_term}%' # This will search for the term in the middle of other terms
             
             # Search in filename, preview and also by matching keywords
             query = """
-            SELECT DISTINCT f.path 
+            SELECT DISTINCT f.filename, f.path 
             FROM files f
             LEFT JOIN file_keywords k ON f.id = k.file_id
             WHERE 
@@ -134,8 +134,8 @@ class DBManager:
             self.cursor.execute(query, (search_term, search_term, search_term, search_term))
             results = self.cursor.fetchall()
             
-            # Return just the list of paths
-            return [row[0] for row in results]
+            # Return list of dictionaries with filename and path
+            return [{"filename": row[0], "path": row[1]} for row in results]
         except Exception as e:
             print(f"Error searching by content: {e}")
             return []
