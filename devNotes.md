@@ -1,7 +1,6 @@
 *Personal notes here:*
 
-1. The database will be hosted remotely on my work PC. Local IP: 192.168.83.202:5432
-   1. ~~TODO: OPEN PORT 5432~~
+1. The website interface method fucking sucks. I shouldn't have done this. For the next iteration I need to move to another method, maybe an app of sorts. I'll continue like this for the sake of learning something new.
 
 Development notes: to be deleted or moved
 
@@ -45,10 +44,3 @@ CREATE INDEX idx_file_path ON files(path);
 CREATE INDEX idx_file_extension ON files(extension);
 CREATE INDEX idx_file_keywords ON file_keywords(word);
 ```
-
-TODO:
-
-* I need to somehow mark the requirements that need to be installed to run this
-  * For the moment I installed psycopg2-binary
-* I need to isolate the project. Instead of installing libraries for the whole system, I need to create a venv (virtual environment). Do I really? Must research.
-* To move these notes in an "official" place, such as a readme or a completely personal TODO list and...notes. Yeah.

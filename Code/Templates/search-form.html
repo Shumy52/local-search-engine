@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Local Search</title>
+</head>
+<body>
+    <!--  Courtesy of geekforgeeks and stackoverflow -->
+    {% with messages = get_flashed_messages() %}
+    {% if messages %}
+      <div id="flash-messages">
+        {% for msg in messages %}
+          <div>{{ msg }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+  <!-- Jinja2 syntax :D -->
+
+  <script>
+    setTimeout(() => {
+      const fm = document.getElementById('flash-messages');
+      if (fm) {
+        fm.style.display = 'none';
+      }
+    }, 3000);
+  </script>
+
+    <!-- Search -->
+    <form action="{{ url_for('search') }}">
+        <input type="text" name="q" placeholder="Search..." />
+        <button type="submit">Search</button>
+    </form>
+    
+    <!-- Can't get full paths through this method, security reasons. This one's a bust -->
+    
+    <form action="{{ url_for('set_index_path') }}" method="POST">
+        <label for="indexPath">Folder to Index:</label>
+        <input type="text" id="indexPath" name="path" value="{{ current_path }}" />
+        <button type="submit">Index</button>
+    </form>
+    You have to write the path by hand. I tried to make it so you can enter it via windows explorer <br> <br>
+    You can't get full paths in a browser due to security reasons.
+    
+    I'll change all this next iteration (hopefully)
+
+    <!-- <script>
+        function selectFolder() {
+          const input = document.createElement('input');
+          input.type = 'file';
+          input.webkitdirectory = true; // Chrome-based browsers
+          input.onchange = event => {
+            if (event.target.files.length) {
+              // folder name from the first file
+              const path = event.target.files[0].webkitRelativePath;
+                // Note: 
+              document.getElementById('indexPath').value = path;
+            }
+          };
+          input.click();
+        }
+    </script> -->
+</body>
+</html>

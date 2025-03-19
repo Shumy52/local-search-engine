@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Search Results</title>
+</head>
+<body>
+    <h1>Results for: {{ query }}</h1>
+    <ul>
+    {% for item in results %}
+        <li>
+            {{ item.filename }}
+            <!-- Passing query so user returns to results after file opens -->
+            <a href="{{ url_for('open_file', path=item.path, q=query) }}">Open</a>
+        </li>
+    {% endfor %}
+    </ul>
+    <a href="{{ url_for('home') }}">Back to search</a>
+</body>
+</html>

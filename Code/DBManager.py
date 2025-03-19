@@ -81,9 +81,6 @@ class DBManager:
             print(f"Error adding file to database: {e}")
             return False
 
-    def search_by_date(self, start_date=None, end_date=None) -> list:
-        pass
-
     def search_by_extension(self, extension) -> list:
         """
         Search files by extension
@@ -139,7 +136,94 @@ class DBManager:
         except Exception as e:
             print(f"Error searching by content: {e}")
             return []
+        
+    def search_multi_words(self, search_words: list) -> list:
+        """
+        Search files matching multiple words in content, filename, or keywords
+        
+        Args:
+            search_words: List of words to search for
+        
+        Returns:
+            List of dictionaries with filename and path of matching files
+        """
+        try:
+            if not search_words:
+                return []
+                
+            # Build a query that requires all words to match
+            query = """
+            SELECT f.filename, f.path
+            FROM files f
+            WHERE 
+            """
+            
+            # For each word, check if it appears in filename, content, preview, or keywords
+            conditions = []
+            params = []
+            
+            for word in search_words:
+                word_param = f'%{word}%'
+                conditions.append("""
+                (f.filename ILIKE %s OR 
+                 f.preview ILIKE %s OR 
+                 f.content ILIKE %s OR
+                 EXISTS (SELECT 1 FROM file_keywords k WHERE k.file_id = f.id AND k.word ILIKE %s))
+                """)
+                params.extend([word_param, word_param, word_param, word_param])
+            
+            query += " AND ".join(conditions)
+            
+            self.cursor.execute(query, params)
+            results = self.cursor.fetchall()
+            
+            return [{"filename": row[0], "path": row[1]} for row in results]
+        except Exception as e:
+            print(f"Error searching multiple words: {e}")
+            return []
     
+    def get_all_files(self) -> list:
+        """
+        Get all files in the database
+        
+        Returns:
+            List of dictionaries with id and path of all files
+        """
+        try:
+            query = "SELECT id, path FROM files"
+            self.cursor.execute(query)
+            results = self.cursor.fetchall()
+            
+            # Return list of dictionaries with id and path
+            return [{"id": row[0], "path": row[1]} for row in results]
+        except Exception as e:
+            print(f"Error getting all files: {e}")
+            return []
+
+    def remove_file(self, file_id) -> bool:
+        """
+        Remove a file from the database by ID
+        
+        Args:
+            file_id: The ID of the file to remove
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            # First delete related keywords
+            self.cursor.execute("DELETE FROM file_keywords WHERE file_id = %s", (file_id,))
+            
+            # Then delete the file
+            self.cursor.execute("DELETE FROM files WHERE id = %s", (file_id,))
+            
+            self.conn.commit()
+            return True
+        except Exception as e:
+            self.conn.rollback()
+            print(f"Error removing file from database: {e}")
+            return False
+
     def close(self):
         if self.cursor:
             self.cursor.close()
