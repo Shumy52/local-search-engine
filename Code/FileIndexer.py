@@ -50,7 +50,6 @@ class FileIndexer:
                                             'she', 'it', 'we', 'they', 'with', 'by', 'as', 'not', 'what', 'from'}
                                 words = re.findall(r'\b[a-zA-Z]{3,}\b', content.lower())
                                 important_words = [word for word in words if word not in stopwords] 
-                                # I didn't learn haskell for nothing, LIST COMPREHENSION
                                 word_counts = Counter(important_words)
                                 file_data['top_words'] = [word for word, _ in word_counts.most_common(5)]
                                 

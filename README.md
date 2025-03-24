@@ -2,9 +2,11 @@
 
 ---
 
+GALBAZA ALEXANDRU-MIHAI
+
 This project was made during my studies at UTCN, in order to learn some OOP stuff.
 
-It's a simple index'n search tool with a web interface. All it does it crawl through a given folder recursively, adding all it can to a database, then running queries in said database. 
+It's a simple index'n search tool with a web interface. All it does it crawl through a given folder recursively, adding all it can to a database, then running queries in said database.
 
 For the moment only for windows.
 
