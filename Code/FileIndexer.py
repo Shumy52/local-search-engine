@@ -34,6 +34,8 @@ class FileIndexer:
                         if p.suffix.lower() in ['.txt', '.md', '.py', '.html', '.css', '.js']:
                             with open(p, 'r', encoding='utf-8', errors='ignore') as f:
                                 content = f.read()
+                                if len(content) > 10000:  # ~10KB limit
+                                    content = content[:10000] + "... (truncated)"
                                 file_data['content'] = content
                                 
                                 # Extract first two paragraphs
