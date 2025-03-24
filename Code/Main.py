@@ -6,7 +6,11 @@ import os
 
 
 app = Flask(__name__, template_folder='Templates')
-app.secret_key = "I'mVeryFondOfBananas"
+app.secret_key = "I'm-Very-Fond-Of-Bananas" # Key used for flash messages
+# The prompt that appears when you successfuly index uses this
+# Used for anything that involves user sessions
+
+
 # Initialize these variables at module level
 # Thanks ChatGPT, I used to do this in the main(), but once I added flask
 # that clearly wasn't going to work. 
@@ -23,8 +27,8 @@ def home():
 def search():
     query = request.args.get('q', '')
     # Now you can use the searcher object here
-    # Yep
     results = searcher.search_prompt(query)
+    
     # This is how you can pass variables from python to the page
     # There you have a {{value}} and here you mention it in the return 
     return render_template('search-result.html', results=results, query=query)
@@ -50,8 +54,7 @@ def set_index_path():
     return redirect(url_for('home'))
     
 def main():
-    # Index paths before starting the app
-    # For now
+    # Default path indexed before starting the app
     indexer.index_path(r"C:\Users\Shumy\Documents\Projects")
     app.run(debug=True)
 
