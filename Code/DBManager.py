@@ -1,4 +1,3 @@
-# Installed psycopg2-binary for this
 import psycopg2
 
 class DBManager:
@@ -11,15 +10,63 @@ class DBManager:
                                      password="postgres",
                                      port=5432)
         self.cursor = self.conn.cursor()
+        self.init_database()
 
-    
+    def init_database(self):
+        """
+        Initialize the database schema if tables don't exist.
+        Creates the necessary tables and indexes for the search engine.
+        """
+        try:
+            self.cursor.execute("""
+                SELECT EXISTS (
+                    SELECT FROM information_schema.tables 
+                    WHERE table_name = 'files'
+                );
+            """)
+            tables_exist = self.cursor.fetchone()[0]
+            
+            if not tables_exist:
+                self.cursor.execute("""
+                    CREATE TABLE files (
+                        id SERIAL PRIMARY KEY,
+                        path TEXT UNIQUE NOT NULL,
+                        filename TEXT NOT NULL,
+                        extension TEXT,
+                        size INTEGER,
+                        modified TIMESTAMP,
+                        created TIMESTAMP,
+                        preview TEXT,
+                        content TEXT
+                    );
+                    
+                    CREATE TABLE file_keywords (
+                        id SERIAL PRIMARY KEY,
+                        file_id INTEGER,
+                        word TEXT NOT NULL,
+                        FOREIGN KEY (file_id) REFERENCES files(id) ON DELETE CASCADE
+                    );
+                    
+                    CREATE INDEX idx_file_path ON files(path);
+                    CREATE INDEX idx_file_extension ON files(extension);
+                    CREATE INDEX idx_file_keywords ON file_keywords(word);
+                """)
+                
+                self.conn.commit()
+                print("Database schema initialized successfully.")
+            else:
+                print("Database schema already exists.")
+                
+            return True
+        except Exception as e:
+            self.conn.rollback()
+            print(f"Error initializing database schema: {e}")
+            return False
     
     def add_file(self, file_data) -> bool: 
-        """Add a file to the database along with its keywords. Returns true for success"""
+        """Add a file to the database along with its keywords"""
         try:
-            # Check file exists
             self.cursor.execute("SELECT id FROM files WHERE path = %s", (file_data['path'],))
-            # print("I've already found file ", file_data['path'])
             existing = self.cursor.fetchone()
             
             # Update
@@ -49,7 +96,6 @@ class DBManager:
                 # Clear keywords, will be updated below            
                 self.cursor.execute("DELETE FROM file_keywords WHERE file_id = %s", (file_id,))
             else:
-                # print("I've entered a new file ", file_data['path'])
                 self.cursor.execute("""
                 INSERT INTO files (path, filename, extension, size, modified, created, preview, content)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
@@ -131,7 +177,7 @@ class DBManager:
             self.cursor.execute(query, (search_term, search_term, search_term, search_term))
             results = self.cursor.fetchall()
             
-            # Return list of dictionaries with filename and path
+            # Return list of dictionaries with filename and path, as before
             return [{"filename": row[0], "path": row[1]} for row in results]
         except Exception as e:
             print(f"Error searching by content: {e}")

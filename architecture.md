@@ -14,10 +14,10 @@ User --> "Local File Search System" : Runs a query
 
 ### Explanation
 
-* We have a single actor, being a generic user, not authorization/authentication is done, who will interact with a "search engine" which will in turn interact with the filesystem of the OS it will run on. 
-* (I'm planning to make this work on both Win and Unix, since development will be done on both... long story)
+* We have a single actor, being a generic user, not authorization/authentication is done, who will interact with a "search engine" which will in turn interact with the filesystem of the OS it will run on.
 
 ## 2. Containers diagram
+
 ```plantuml
 @startuml
 actor User
@@ -41,31 +41,28 @@ Indexer --> "OS Filesystem" : Retrieves data
 * The search engine will send prompts to the DB and return the results (in a pretty way) to the user.
 
 ## 3. Components diagram
+
 ```plantuml
 @startuml
 package "Local File Search System" {
     class FileIndexer {
         +index_path()
     }
-    
+  
     class DBManager {
-        +add_file()      
+        +add_file()  
     }
-    
+  
     class SearchEngine {
         +search_prompt()
     }
-    
+  
     FileIndexer --> DBManager : Stores file content
     SearchEngine --> DBManager : Queries indexed files
 }
 @enduml
 ```
+
 ### Explanation
 
 * This is the diagram I'm most doubtful about. I don't know what to say except that the names chosen portrait their use in quite an efficient way.
-
-
-# Lots of words and stuff
-
-## 1. Nothing yet.

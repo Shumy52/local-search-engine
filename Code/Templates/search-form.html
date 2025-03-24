@@ -35,13 +35,13 @@
     
     <form action="{{ url_for('set_index_path') }}" method="POST">
         <label for="indexPath">Folder to Index:</label>
-        <input type="text" id="indexPath" name="path" value="{{ current_path }}" />
+        <input type="text" id="indexPath" name="path" value="{{ current_path }}" style="width: 100%; max-width: 600px;" />
         <button type="submit">Index</button>
     </form>
     You have to write the path by hand. I tried to make it so you can enter it via windows explorer <br> <br>
-    You can't get full paths in a browser due to security reasons.
+    You can't get full paths in a browser due to security concerns.
     
-    I'll change all this next iteration (hopefully)
+    I'll change all this next iteration
 
     <!-- <script>
         function selectFolder() {

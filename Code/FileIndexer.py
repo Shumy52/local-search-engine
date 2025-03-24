@@ -52,13 +52,14 @@ class FileIndexer:
                                 word_counts = Counter(important_words)
                                 file_data['top_words'] = [word for word, _ in word_counts.most_common(5)]
                                 
-                        self.db.add_file(file_data)
+                        if self.db.add_file(file_data)==False :
+                            raise Exception("Database malfunction, can't add file")
 
                 except Exception as e:
                     print(f"Error indexing {p}: {e}")
 
+            # Navigate further
             elif p.is_dir():
-                # Navigate further
                 self.index_path(p) # You need self. in this case
                 
             else:

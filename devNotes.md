@@ -1,6 +1,6 @@
 *Personal notes here:*
 
-1. The website interface method fucking sucks. I shouldn't have done this. For the next iteration I need to move to another method, maybe an app of sorts. I'll continue like this for the sake of learning something new.
+1. This needs better error handling. For the moment I'm wondering, how could I throw an error in the init of the DBManager?
 
 Development notes: to be deleted or moved
 
