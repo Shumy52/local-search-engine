@@ -1,14 +1,18 @@
 import psycopg2
+import os 
+from dotenv import load_dotenv
 
 class DBManager:
     def __init__(self):
-        # Maybe separate these between a local connection and remote
-        # TODO: CONNECTION SHOULD BE CHANGEABLE
-        self.conn = psycopg2.connect(database="search-engine-db",
-                                     user="postgres",
-                                     host="localhost",
-                                     password="postgres",
-                                     port=5432)
+        load_dotenv()
+
+        
+        self.conn = psycopg2.connect(database=os.getenv('DB_NAME'),
+                                     user=os.getenv('DB_USER'),
+                                     host=os.getenv("DB_HOST"),
+                                     password=os.getenv("DB_PASSWORD"),
+                                     port=os.getenv("DB_PORT")
+                                    )
         self.cursor = self.conn.cursor()
         self.init_database()
 

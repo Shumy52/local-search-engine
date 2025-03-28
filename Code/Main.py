@@ -3,17 +3,15 @@ from FileIndexer import FileIndexer
 from SearchEngine import FileSearcher
 from flask import Flask, flash, request, render_template, redirect, url_for
 import os
-
+from dotenv import load_dotenv
 
 app = Flask(__name__, template_folder='Templates')
-app.secret_key = "I'm-Very-Fond-Of-Bananas" # Key used for flash messages
+# Load secret key from .env file
+
+load_dotenv()
+app.secret_key = os.getenv('FLASK_SECRET_KEY', "default")  # Default fallback if not in .env
 # The prompt that appears when you successfuly index uses this
 # Used for anything that involves user sessions
-
-
-# Initialize these variables at module level
-# Thanks ChatGPT, I used to do this in the main(), but once I added flask
-# that clearly wasn't going to work. 
 
 db = DBManager()
 indexer = FileIndexer(db)
@@ -55,8 +53,6 @@ def set_index_path():
     return redirect(url_for('home'))
     
 def main():
-    # Default path indexed before starting the app
-    indexer.index_path(r"C:\Users\Shumy\Documents\Projects")
     app.run(debug=True)
 
 if __name__ == "__main__":
