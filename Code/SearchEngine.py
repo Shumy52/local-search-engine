@@ -7,16 +7,16 @@ class FileSearcher:
         self.db = db
     
     def search_prompt(self, prompt) -> list:
-
         # Check if searching by extension
         if prompt.startswith('.'):
-            print("DEBUG: I've searched by extension")
-            results = self.db.search_by_extension(prompt)
-        elif len(prompt.split(" ")) > 1 :
-            print("DEBUG: I've searched by multiple words")
-            results = self.db.search_multi_words(prompt)
+            extension = prompt[1:] # Remove the dot, since we changed that in DBManager
+            results = self.db.search_by_extension(extension)
+        # Multi-word query
+        elif len(prompt.split()) > 1:
+            search_words = prompt.split()
+            results = self.db.search_multi_words(search_words)
+        # Search by preview, content and path
         else:
-            print("DEBUG: I've searched generally")
             results = self.db.search_by_content(prompt)
-        # TODO: Search by date
+        
         return results

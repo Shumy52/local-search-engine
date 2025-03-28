@@ -16,6 +16,8 @@ class DBManager:
         self.cursor = self.conn.cursor()
         self.init_database()
 
+    # TODO: Move all the SQL in a directory
+
     def init_database(self):
         """
         Initialize the database schema if tables don't exist.
@@ -31,6 +33,9 @@ class DBManager:
             tables_exist = self.cursor.fetchone()[0]
             
             if not tables_exist:
+                # Enable the pg_trgm extension for better text search
+                self.cursor.execute("CREATE EXTENSION IF NOT EXISTS pg_trgm;")
+                
                 self.cursor.execute("""
                     CREATE TABLE files (
                         id SERIAL PRIMARY KEY,
@@ -41,25 +46,93 @@ class DBManager:
                         modified TIMESTAMP,
                         created TIMESTAMP,
                         preview TEXT,
-                        content TEXT
+                        content TEXT,
+                        search_vector tsvector
                     );
                     
-                    CREATE TABLE file_keywords (
-                        id SERIAL PRIMARY KEY,
-                        file_id INTEGER,
-                        word TEXT NOT NULL,
-                        FOREIGN KEY (file_id) REFERENCES files(id) ON DELETE CASCADE
-                    );
-                    
+                    -- Basic indexes
                     CREATE INDEX idx_file_path ON files(path);
                     CREATE INDEX idx_file_extension ON files(extension);
-                    CREATE INDEX idx_file_keywords ON file_keywords(word);
+                    
+                    -- GIN indexes for text search
+                    CREATE INDEX idx_file_content_gin ON files USING GIN(search_vector);
+                    CREATE INDEX idx_file_filename_gin ON files USING GIN(filename gin_trgm_ops);
+                    CREATE INDEX idx_file_preview_gin ON files USING GIN(preview gin_trgm_ops);
+                """)
+                
+                # Create trigger to update search_vector when content changes
+                self.cursor.execute("""
+                    CREATE OR REPLACE FUNCTION update_search_vector_trigger() RETURNS trigger AS $$
+                    BEGIN
+                        NEW.search_vector = 
+                            setweight(to_tsvector('english', COALESCE(NEW.filename, '')), 'A') ||
+                            setweight(to_tsvector('english', COALESCE(NEW.preview, '')), 'B') ||
+                            setweight(to_tsvector('english', COALESCE(NEW.content, '')), 'C');
+                        RETURN NEW;
+                    END
+                    $$ LANGUAGE plpgsql;
+                    
+                    CREATE TRIGGER update_files_search_vector
+                    BEFORE INSERT OR UPDATE ON files
+                    FOR EACH ROW EXECUTE FUNCTION update_search_vector_trigger();
                 """)
                 
                 self.conn.commit()
                 print("Database schema initialized successfully.")
             else:
-                print("Database schema already exists.")
+                # Check if search_vector column exists, add if not
+                self.cursor.execute("""
+                    SELECT EXISTS (
+                        SELECT FROM information_schema.columns 
+                        WHERE table_name = 'files' AND column_name = 'search_vector'
+                    );
+                """)
+                has_search_vector = self.cursor.fetchone()[0]
+                
+                if not has_search_vector:
+                    # Enable the pg_trgm extension
+                    self.cursor.execute("CREATE EXTENSION IF NOT EXISTS pg_trgm;")
+                    
+                    # Add search_vector column
+                    self.cursor.execute("ALTER TABLE files ADD COLUMN search_vector tsvector;")
+                    
+                    # Create GIN indexes
+                    self.cursor.execute("""
+                        CREATE INDEX idx_file_content_gin ON files USING GIN(search_vector);
+                        CREATE INDEX idx_file_filename_gin ON files USING GIN(filename gin_trgm_ops);
+                        CREATE INDEX idx_file_preview_gin ON files USING GIN(preview gin_trgm_ops);
+                    """)
+                    
+                    # Create trigger
+                    self.cursor.execute("""
+                        CREATE OR REPLACE FUNCTION update_search_vector_trigger() RETURNS trigger AS $$
+                        BEGIN
+                            NEW.search_vector = 
+                                setweight(to_tsvector('english', COALESCE(NEW.filename, '')), 'A') ||
+                                setweight(to_tsvector('english', COALESCE(NEW.preview, '')), 'B') ||
+                                setweight(to_tsvector('english', COALESCE(NEW.content, '')), 'C');
+                            RETURN NEW;
+                        END
+                        $$ LANGUAGE plpgsql;
+                        
+                        CREATE TRIGGER update_files_search_vector
+                        BEFORE INSERT OR UPDATE ON files
+                        FOR EACH ROW EXECUTE FUNCTION update_search_vector_trigger();
+                    """)
+                    
+                    # Initialize search_vector for existing records
+                    self.cursor.execute("""
+                        UPDATE files SET 
+                        search_vector = 
+                            setweight(to_tsvector('english', COALESCE(filename, '')), 'A') ||
+                            setweight(to_tsvector('english', COALESCE(preview, '')), 'B') ||
+                            setweight(to_tsvector('english', COALESCE(content, '')), 'C');
+                    """)
+                    
+                    self.conn.commit()
+                    print("Database schema updated with full text search capabilities.")
+                else:
+                    print("Database schema already exists with full text search capabilities.")
                 
             return True
         except Exception as e:
@@ -68,7 +141,7 @@ class DBManager:
             return False
     
     def add_file(self, file_data) -> bool: 
-        """Add a file to the database along with its keywords"""
+        """Add a file to the database"""
         try:
             self.cursor.execute("SELECT id FROM files WHERE path = %s", (file_data['path'],))
             existing = self.cursor.fetchone()
@@ -96,14 +169,10 @@ class DBManager:
                     file_data.get('content', None),
                     file_id
                 ))
-
-                # Clear keywords, will be updated below            
-                self.cursor.execute("DELETE FROM file_keywords WHERE file_id = %s", (file_id,))
             else:
                 self.cursor.execute("""
                 INSERT INTO files (path, filename, extension, size, modified, created, preview, content)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-                RETURNING id
                 """, (
                     file_data['path'],
                     file_data['filename'],
@@ -114,15 +183,6 @@ class DBManager:
                     file_data.get('preview', None),
                     file_data.get('content', None)
                 ))
-                file_id = self.cursor.fetchone()[0]
-            
-            # Add keywords
-            if 'top_words' in file_data and file_data['top_words']:
-                for word in file_data['top_words']:
-                    self.cursor.execute("""
-                    INSERT INTO file_keywords (file_id, word)
-                    VALUES (%s, %s)
-                    """, (file_id, word))
             
             self.conn.commit()
             return True
@@ -155,7 +215,7 @@ class DBManager:
 
     def search_by_content(self, search_term) -> list:
         """
-        Search files by filename, preview content and keywords
+        Search files by filename, path, preview content using full text search
         
         Args:
             search_term: Term to search for
@@ -164,32 +224,52 @@ class DBManager:
             List of dictionaries with filename and path of matching files
         """
         try:
-            search_term = f'%{search_term}%' # This will search for the term in the middle of other terms
+            # Convert search term to tsquery
+            search_query = ' & '.join(search_term.split())
+            tsquery = f"to_tsquery('english', '{search_query}')"
             
-            # Search in filename, preview and also by matching keywords
-            query = """
-            SELECT DISTINCT f.filename, f.path 
+            # Use GIN index for full text search
+            query = f"""
+            SELECT DISTINCT f.filename, f.path, ts_rank(f.search_vector, {tsquery}) as rank
             FROM files f
-            LEFT JOIN file_keywords k ON f.id = k.file_id
             WHERE 
-                f.filename ILIKE %s OR 
-                f.preview ILIKE %s OR 
-                f.content ILIKE %s OR
-                k.word ILIKE %s
+                f.search_vector @@ {tsquery} OR
+                f.filename ILIKE %s OR
+                f.path ILIKE %s
+            ORDER BY rank DESC
             """
             
-            self.cursor.execute(query, (search_term, search_term, search_term, search_term))
+            like_term = f'%{search_term}%'
+            self.cursor.execute(query, (like_term, like_term))
             results = self.cursor.fetchall()
             
-            # Return list of dictionaries with filename and path, as before
             return [{"filename": row[0], "path": row[1]} for row in results]
         except Exception as e:
             print(f"Error searching by content: {e}")
-            return []
+            # Fallback to simpler search if full text search fails
+            try:
+                search_term = f'%{search_term}%'
+                query = """
+                SELECT DISTINCT f.filename, f.path 
+                FROM files f
+                WHERE 
+                    f.filename ILIKE %s OR 
+                    f.path ILIKE %s OR
+                    f.preview ILIKE %s OR 
+                    f.content ILIKE %s
+                """
+                
+                self.cursor.execute(query, (search_term, search_term, search_term, search_term))
+                results = self.cursor.fetchall()
+                
+                return [{"filename": row[0], "path": row[1]} for row in results]
+            except Exception as e2:
+                print(f"Error in fallback search: {e2}")
+                return []
         
     def search_multi_words(self, search_words: list) -> list:
         """
-        Search files matching multiple words in content, filename, or keywords
+        Search files matching multiple words using full text search
         
         Args:
             search_words: List of words to search for
@@ -201,31 +281,45 @@ class DBManager:
             if not search_words:
                 return []
                 
-            # Build a query that requires all words to match
-            query = """
-            SELECT f.filename, f.path
+            # Create a tsquery from all search words
+            search_query = ' & '.join(search_words)
+            tsquery = f"to_tsquery('english', '{search_query}')"
+            
+            # Use GIN index for efficient search
+            query = f"""
+            SELECT f.filename, f.path, ts_rank(f.search_vector, {tsquery}) as rank
             FROM files f
-            WHERE 
+            WHERE f.search_vector @@ {tsquery}
+            ORDER BY rank DESC
             """
             
-            # For each word, check if it appears in filename, content, preview, or keywords
-            conditions = []
-            params = []
-            
-            for word in search_words:
-                word_param = f'%{word}%'
-                conditions.append("""
-                (f.filename ILIKE %s OR 
-                 f.preview ILIKE %s OR 
-                 f.content ILIKE %s OR
-                 EXISTS (SELECT 1 FROM file_keywords k WHERE k.file_id = f.id AND k.word ILIKE %s))
-                """)
-                params.extend([word_param, word_param, word_param, word_param])
-            
-            query += " AND ".join(conditions)
-            
-            self.cursor.execute(query, params)
+            self.cursor.execute(query)
             results = self.cursor.fetchall()
+            
+            # If no results with full text search, fallback to pattern matching
+            if not results:
+                query = """
+                SELECT f.filename, f.path
+                FROM files f
+                WHERE 
+                """
+                
+                conditions = []
+                params = []
+                
+                for word in search_words:
+                    word_param = f'%{word}%'
+                    conditions.append("""
+                    (f.filename ILIKE %s OR 
+                     f.preview ILIKE %s OR 
+                     f.content ILIKE %s)
+                    """)
+                    params.extend([word_param, word_param, word_param])
+                
+                query += " AND ".join(conditions)
+                
+                self.cursor.execute(query, params)
+                results = self.cursor.fetchall()
             
             return [{"filename": row[0], "path": row[1]} for row in results]
         except Exception as e:
@@ -261,10 +355,7 @@ class DBManager:
             True if successful, False otherwise
         """
         try:
-            # First delete related keywords
-            self.cursor.execute("DELETE FROM file_keywords WHERE file_id = %s", (file_id,))
-            
-            # Then delete the file
+            # Delete the file
             self.cursor.execute("DELETE FROM files WHERE id = %s", (file_id,))
             
             self.conn.commit()
