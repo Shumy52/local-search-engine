@@ -2,15 +2,7 @@
 
 ## 1. System Context Diagram
 
-```plantuml
-@startuml
-actor User
-rectangle "Local File Search System" 
-rectangle "OS Filesystem"
-User --> "Local File Search System" : Runs a query
-"Local File Search System" --> "OS Filesystem" : Looks in it
-@enduml
-```
+![1743158621563](image/architecture/1743158621563.png)
 
 ### Explanation
 
@@ -18,21 +10,7 @@ User --> "Local File Search System" : Runs a query
 
 ## 2. Containers diagram
 
-```plantuml
-@startuml
-actor User
-rectangle "OS Filesystem"
-rectangle "Local File Search System" {
-    rectangle "Indexer" as Indexer
-    rectangle "Search Engine" as Search
-    rectangle "Database (PostgreSQL)" as DB
-}
-User --> Search : Runs a query
-Indexer --> DB : Stores indexed files
-Search --> DB : Searches for matching files
-Indexer --> "OS Filesystem" : Retrieves data
-@enduml
-```
+![1743158609329](image/architecture/1743158609329.png)
 
 ### Explanation
 
@@ -42,26 +20,7 @@ Indexer --> "OS Filesystem" : Retrieves data
 
 ## 3. Components diagram
 
-```plantuml
-@startuml
-package "Local File Search System" {
-    class FileIndexer {
-        +index_path()
-    }
-  
-    class DBManager {
-        +add_file()  
-    }
-  
-    class SearchEngine {
-        +search_prompt()
-    }
-  
-    FileIndexer --> DBManager : Stores file content
-    SearchEngine --> DBManager : Queries indexed files
-}
-@enduml
-```
+![1743158593330](image/architecture/1743158593330.png)
 
 ### Explanation
 
