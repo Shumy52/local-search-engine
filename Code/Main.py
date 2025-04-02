@@ -1,17 +1,16 @@
 from DBManager import DBManager
 from FileIndexer import FileIndexer
 from SearchEngine import FileSearcher
-from flask import Flask, flash, request, render_template, redirect, url_for
+from flask import Flask, flash, jsonify, request, render_template, redirect, url_for
 import os
 from dotenv import load_dotenv
+import requests
 
 app = Flask(__name__, template_folder='Templates')
 # Load secret key from .env file
 
 load_dotenv()
 app.secret_key = os.getenv('FLASK_SECRET_KEY', "default")  # Default fallback if not in .env
-# The prompt that appears when you successfuly index uses this
-# Used for anything that involves user sessions
 
 db = DBManager()
 indexer = FileIndexer(db)
@@ -28,9 +27,27 @@ def search():
     # Now you can use the searcher object here
     results = searcher.search_prompt(query)
     
-    # This is how you can pass variables from python to the page
-    # There you have a {{value}} and here you mention it in the return 
     return render_template('search-result.html', results=results, query=query)
+
+# Bad practice. TODO: Do something...
+MANAGER_ADDRESS = "http://localhost:5001/api/search"
+
+@app.route("/api/search", methods=["GET"])
+def api_search(): 
+    query = request.args.get('q', '')
+    path = request.args.get('path')
+
+    try:
+        response = requests.get(MANAGER_ADDRESS, params={"q": query, "path": path})
+        if response.status_code == 200:
+            # TODO: Return as result page
+            return render_template('search-result.html', results=response.json().get("results", []), query=query)
+            #return jsonify(response.json())
+        else:
+            return jsonify({"error": f"Manager returned status {response.status_code}"}), response.status_code
+    except Exception as e:
+        return jsonify({"error": f"Error connecting to search manager: {str(e)}"}), 500
+    
 
 @app.route('/open_file')
 def open_file():

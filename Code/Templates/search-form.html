@@ -25,6 +25,12 @@
     }, 3000);
   </script>
 
+    <form action="{{ url_for('api_search') }}">
+      <input type="text" name="q" placeholder="Search..." />
+      <input type="text" name="path" placeholder="{{ current_path }}" value="{{ current_path }}" />
+      <button type="submit">Distributed Search</button>
+    </form>
+
     <!-- Search -->
     <form action="{{ url_for('search') }}">
         <input type="text" name="q" placeholder="Search..." />
@@ -38,10 +44,7 @@
         <input type="text" id="indexPath" name="path" value="{{ current_path }}" style="width: 100%; max-width: 600px;" />
         <button type="submit">Index</button>
     </form>
-    You have to write the path by hand. I tried to make it so you can enter it via windows explorer <br> <br>
-    You can't get full paths in a browser due to security concerns.
-    
-    I'll change all this next iteration
+
 
     <!-- <script>
         function selectFolder() {
