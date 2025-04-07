@@ -38,3 +38,10 @@ pip install -r requirements.txt
 
 1. Go to localhost:5000
 2. There the menus should be self-explanatory, not quite rocket science yet
+
+---
+
+### Regarding the index-less search:
+
+- 2 separate apps will need to be run. One is main.py and the other is SearchManager.py, found in Code/IndexlessQuery.
+- These will occupy ports 5000 - 5004

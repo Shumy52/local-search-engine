@@ -40,9 +40,7 @@ def api_search():
     try:
         response = requests.get(MANAGER_ADDRESS, params={"q": query, "path": path})
         if response.status_code == 200:
-            # TODO: Return as result page
             return render_template('search-result.html', results=response.json().get("results", []), query=query)
-            #return jsonify(response.json())
         else:
             return jsonify({"error": f"Manager returned status {response.status_code}"}), response.status_code
     except Exception as e:

@@ -6,15 +6,16 @@ from flask import Flask, request, jsonify
 import requests
 import os
 
-# Defining manually the sockets for the workers. 
 app = Flask(__name__)
 
-# Manually defined for now
 PORT = 5001
 WORKER_PORTS = [5002, 5003, 5004]
 WORKERS = [f"http://localhost:{port}" for port in WORKER_PORTS]
 
 worker_processes = []
+
+# Be advised, no caching has been implemented yet. 
+# TODO: Cache search results and query for subsequenct searches
 
 def start_workers():
     worker_file = os.path.join(os.path.dirname(__file__), "SearchWorker.py")
@@ -25,7 +26,6 @@ def start_workers():
         print(f"Start worker port {port} PID: {process.pid}")
 
 def cleanup_workers():
-    """Terminate all worker processes when manager exits"""
     for process in worker_processes:
         try:
             process.terminate()
@@ -55,8 +55,10 @@ def api_search():
     worker_dirs = {}
     for i, subdir in enumerate(subdirs):
         worker_idx = i % len(WORKERS)
+        # Initialize the lists of tasks for each of the workers
         if WORKERS[worker_idx] not in worker_dirs:
             worker_dirs[WORKERS[worker_idx]] = []
+
         worker_dirs[WORKERS[worker_idx]].append(subdir)
     
     # Query workers with their assigned directories
@@ -74,13 +76,15 @@ def api_search():
             except Exception as e:
                 print(f"Error with {worker} searching {dir_path}: {e}")
     
+    # Sorting the results by filename
     results.sort(key=lambda x: x.get("filename", ""))
     return jsonify({"results": results})
 
 def main():
     start_workers()
     atexit.register(cleanup_workers)
-    app.run(host="0.0.0.0", port= PORT)
+    # Localhost, port 3001
+    app.run(host="0.0.0.0", port=PORT)
 
 if __name__ == "__main__":
     main()
