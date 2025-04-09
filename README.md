@@ -27,7 +27,10 @@ python -m venv myvenv
 pip install -r requirements.txt
 ```
 
-4. Go to main.py and run that!
+4. Being at the root of the project, run
+   ```bash
+   python -m Code.main
+   ```
 
 ### MUST DOs BEFORE RUNNING:
 

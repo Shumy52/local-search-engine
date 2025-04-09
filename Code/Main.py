@@ -1,74 +1,125 @@
-from DBManager import DBManager
-from FileIndexer import FileIndexer
-from SearchEngine import FileSearcher
 from flask import Flask, flash, jsonify, request, render_template, redirect, url_for
-import os
 from dotenv import load_dotenv
+import os
 import requests
 
-app = Flask(__name__, template_folder='Templates')
-# Load secret key from .env file
+from .Database.DBConnection import DBConnection
+from .Database.FileManager import FileManager
+from .Database.SearchManager import SearchManager
+from .Database.SchemaManager import SchemaManager
 
+from .MiddleManagement.FileIndexer import FileIndexer
+from .MiddleManagement.SearchSelector import SearchSelector
+
+
+# Initialize Flask app
+app = Flask(__name__, template_folder='../Templates')
+
+# Load environment variables
 load_dotenv()
 app.secret_key = os.getenv('FLASK_SECRET_KEY', "default")  # Default fallback if not in .env
 
-db = DBManager()
-indexer = FileIndexer(db)
-searcher = FileSearcher(db)
+# Database configuration
+db_config = {
+    "database": os.getenv("DB_NAME"),
+    "user": os.getenv("DB_USER"),
+    "host": os.getenv("DB_HOST"),
+    "password": os.getenv("DB_PASSWORD"),
+    "port": os.getenv("DB_PORT"),
+}
+
+# Initialize database connection and managers
+db_connection = DBConnection(db_config)
+schema_manager = SchemaManager(db_connection)
+file_manager = FileManager(db_connection)
+search_manager = SearchManager(db_connection)
+file_indexer = FileIndexer(file_manager)
+search_selector = SearchSelector(search_manager)
+
+
+
+# Default path for indexing
+DEFAULT_PATH = r"C:\Users\Shumy\Documents\Projects"
+
+# External manager address (for API calls)
+MANAGER_ADDRESS = "http://localhost:5001/api/search"
+
 
 @app.route('/')
 def home():
-    default_path = r"C:\Users\Shumy\Documents\Projects"
-    return render_template('search-form.html', current_path = default_path)
+    """
+    Render the home page with the default path.
+    """
+    return render_template('search-form.html', current_path=DEFAULT_PATH)
+
 
 @app.route('/search', methods=['GET'])
 def search():
+    """
+    Handle search requests and render the search results.
+    """
     query = request.args.get('q', '')
-    # Now you can use the searcher object here
-    results = searcher.search_prompt(query)
-    
+    results = search_selector.search_prompt(query)
     return render_template('search-result.html', results=results, query=query)
 
-# Bad practice. TODO: Do something...
-MANAGER_ADDRESS = "http://localhost:5001/api/search"
 
 @app.route("/api/search", methods=["GET"])
-def api_search(): 
+def api_search():
+    """
+    Handle API search requests by forwarding them to the external manager.
+    """
     query = request.args.get('q', '')
     path = request.args.get('path')
 
     try:
         response = requests.get(MANAGER_ADDRESS, params={"q": query, "path": path})
         if response.status_code == 200:
-            return render_template('search-result.html', results=response.json().get("results", []), query=query)
+            return jsonify({"results": response.json().get("results", [])})
         else:
             return jsonify({"error": f"Manager returned status {response.status_code}"}), response.status_code
     except Exception as e:
         return jsonify({"error": f"Error connecting to search manager: {str(e)}"}), 500
-    
+
 
 @app.route('/open_file')
 def open_file():
+    """
+    Open a file on the local system based on the provided path.
+    """
     path = request.args.get('path')
-    os.startfile(path) 
+    os.startfile(path)
     return redirect(url_for('search', q=request.args.get('q', '')))
+
 
 @app.route('/set_index_path', methods=['POST'])
 def set_index_path():
+    """
+    Set a new index path and re-index the files in the database.
+    """
     new_path = request.form.get('path', '')
 
-    # Cleanup
-    existing_files = db.get_all_files()  # Only ID and path
+    # Cleanup: Remove files from the database that no longer exist
+    existing_files = file_manager.get_all_files()
     for f in existing_files:
         if not os.path.exists(f['path']):
-            db.remove_file(f['id'])  
+            file_manager.remove_file(f['id'])
 
-    indexer.index_path(new_path)
+    # Index the new path
+    # Assuming `index_path` is a method in FileManager or a separate indexing utility
+    # Replace this with the actual indexing logic
+    # Example: file_manager.index_path(new_path)
+    file_indexer.index_path(new_path)
     flash(f"Successfully indexed path: {new_path}")
     return redirect(url_for('home'))
-    
+
+
 def main():
+    """
+    Run the Flask application.
+    """
+    schema_manager.init_database()
     app.run(debug=True)
+
 
 if __name__ == "__main__":
     main()

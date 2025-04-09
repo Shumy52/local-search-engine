@@ -9,6 +9,20 @@ class FileIndexer:
         self.db = db  # Get database instance from main
         self.logger = logging.getLogger(__name__)
 
+    # TODO: Consider moving this to another class... But is it worth it just for this method, a separate class?
+    def calculate_score(self, file_data):
+        """Calculate a score for the file based on its metadata and content."""
+        score = 0
+        
+        # Example scoring criteria
+        if file_data['extension'] in ['txt', 'md', 'py']:
+            score += 10  # Higher score for relevant file types
+        if 'content' in file_data and 'important_keyword' in file_data['content']:
+            score += 20  # Boost score for specific keywords
+        score += max(0, (datetime.datetime.now() - file_data['modified']).days * -0.1)  # Penalize older files
+
+        return score
+
     def index_path(self, path):
         """Indexes recursively a folder and all the files and subfolders in it"""
         path = Path(path)
@@ -38,6 +52,9 @@ class FileIndexer:
                                 # Extract first two paragraphs for preview
                                 paragraphs = re.split(r'\n\s*\n', content.strip(), maxsplit=2)
                                 file_data['preview'] = '\n\n'.join(paragraphs[:2]) if len(paragraphs) > 1 else paragraphs[0]
+
+                                # Used to order the results returned from query
+                                file_data['score'] = self.calculate_score(file_data)
 
                                 # TODO: Add logic to split into chunks for solution returning
                         
