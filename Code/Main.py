@@ -41,7 +41,6 @@ search_selector = SearchSelector(search_manager)
 # Default path for indexing
 DEFAULT_PATH = r"C:\Users\Shumy\Documents\Projects"
 
-# External manager address (for API calls)
 MANAGER_ADDRESS = "http://localhost:5001/api/search"
 
 
@@ -66,7 +65,7 @@ def search():
 @app.route("/api/search", methods=["GET"])
 def api_search():
     """
-    Handle API search requests by forwarding them to the external manager.
+    Route for IndexlessQueries. Assignment 2
     """
     query = request.args.get('q', '')
     path = request.args.get('path')
@@ -114,9 +113,6 @@ def set_index_path():
 
 
 def main():
-    """
-    Run the Flask application.
-    """
     schema_manager.init_database()
     app.run(debug=True)
 

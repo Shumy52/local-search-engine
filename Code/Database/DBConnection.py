@@ -14,21 +14,21 @@ class DBConnection:
         self.conn = None
 
     def connect(self):
-        """Establish a connection to the database."""
         if not self.conn:
             self.conn = psycopg2.connect(**self.db_config)
 
     def close(self):
-        """Close the database connection."""
         if self.conn:
             self.conn.close()
             self.conn = None
+
 
     @contextmanager
     def cursor(self):
         """
         Provides a cursor for database operations.
         Ensures the connection is established and commits/rollbacks transactions.
+        It's used within "with ... as ... " clauses, hence the need for @contextmanager
         """
         self.connect()
         cursor = self.conn.cursor()

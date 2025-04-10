@@ -16,7 +16,7 @@ class SearchManager:
         """
         self.db_connection = db_connection
 
-    def search_by_extension(self, extension: str) -> List[Dict[str, str]]:
+    def search_by_extension(self, extension: str) -> List[   Dict[str, str]]:
         """
         Search files by extension.
         Args:
