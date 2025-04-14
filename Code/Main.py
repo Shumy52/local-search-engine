@@ -15,9 +15,11 @@ from .MiddleManagement.SearchSelector import SearchSelector
 # Initialize Flask app
 app = Flask(__name__, template_folder='../Templates')
 
+
 # Load environment variables
 load_dotenv()
 app.secret_key = os.getenv('FLASK_SECRET_KEY', "default")  # Default fallback if not in .env
+
 
 # Database configuration
 db_config = {
@@ -28,6 +30,7 @@ db_config = {
     "port": os.getenv("DB_PORT"),
 }
 
+
 # Initialize database connection and managers
 db_connection = DBConnection(db_config)
 schema_manager = SchemaManager(db_connection)
@@ -37,9 +40,10 @@ file_indexer = FileIndexer(file_manager)
 search_selector = SearchSelector(search_manager)
 
 
-
 # Default path for indexing
-DEFAULT_PATH = r"C:\Users\Shumy\Documents\Projects"
+current_file = os.path.abspath(__file__)
+project_dir = os.path.dirname(os.path.dirname(current_file)) # ../../WhereIamRightNow , so basically the file downloaded by git clone. Always safe.
+DEFAULT_PATH = project_dir
 
 MANAGER_ADDRESS = "http://localhost:5001/api/search"
 
@@ -103,10 +107,6 @@ def set_index_path():
         if not os.path.exists(f['path']):
             file_manager.remove_file(f['id'])
 
-    # Index the new path
-    # Assuming `index_path` is a method in FileManager or a separate indexing utility
-    # Replace this with the actual indexing logic
-    # Example: file_manager.index_path(new_path)
     file_indexer.index_path(new_path)
     flash(f"Successfully indexed path: {new_path}")
     return redirect(url_for('home'))

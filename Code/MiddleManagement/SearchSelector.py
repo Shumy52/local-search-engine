@@ -12,7 +12,6 @@ class SearchSelector:
 
     def __init__(self, db):
         self.db = db
-        logger.info("SearchSelector initialized")
     
     def search_prompt(self, prompt: str) -> list:
         """
@@ -30,31 +29,38 @@ class SearchSelector:
             logger.info("Empty search prompt, returning empty results")
             return []
             
-        # First we try to parse whatever we can
+        # First we try to parse whatever we can based on iteration 2 criteria
         parsed_query, remaining_text = self._parse_query(prompt)
         logger.debug(f"Parsed query: {parsed_query}, Remaining text: '{remaining_text}'")
         
+        # Considering we found anything, try to make something out of it
+        # If we find anything, we'll ignore anything unparsed 
+        # TODO: If requested, integrate the unparsed part of the search into something... 
+            # If we just shove it in the other methods, we'll get a lot of unwanted results.
         if parsed_query:
             logger.info(f"Using parsed query: {parsed_query}")
             return self._handle_parsed_items(parsed_query)
         
-        if remaining_text.startswith('.'):
-            extension = remaining_text[1:]  # Remove the dot
-            logger.info(f"Searching by file extension: '{extension}'")
-            return self.db.search_by_extension(extension)
-                
-        if len(remaining_text.split()) > 1:
-            search_words = remaining_text.split()
-            logger.info(f"Searching multiple words: {search_words}")
-            return self.db.search_multi_words(search_words)
+        # Iteration 1 of project methods of searching from now on
         else:
-            logger.info(f"Searching by content: '{remaining_text}'")
-            return self.db.search_by_content(remaining_text)
+            if remaining_text.startswith('.'):
+                extension = remaining_text[1:]  # Remove the dot
+                logger.info(f"Searching by file extension: '{extension}'")
+                return self.db.search_by_extension(extension)
+        
+            if len(remaining_text.split()) > 1:
+                search_words = remaining_text.split()
+                logger.info(f"Searching multiple words: {search_words}")
+                return self.db.search_multi_words(search_words)
+          
+            else:
+                logger.info(f"Searching by content: '{remaining_text}'")
+                return self.db.search_by_content(remaining_text)
 
 
     def _handle_parsed_items(self, parsed_query):
         """
-        Process parsed query items and return search results based on qualifiers.
+        Process parsed query items and return search results based on qualifiers (path, content etc.).
         
         Args:
             parsed_query: Dictionary with query qualifiers as keys and their values as lists
@@ -66,75 +72,57 @@ class SearchSelector:
             logger.info("Empty parsed query, returning empty results")
             return []
         
-        # Handle different combinations of qualifiers
-        if 'path' in parsed_query and 'content' in parsed_query:
-            # For path + content combinations, search by both
-            # Take the first value from each qualifier for simplicity (for now)
-            path = parsed_query['path'][0]
-            content = parsed_query['content'][0]
-            logger.info(f"Searching by path '{path}' and content '{content}'")
-            return self.db.search_by_path_and_content(path, content)
+        supported_qualifiers = {'path', 'content', 'extension'}
+        used_qualifiers = set(parsed_query.keys())
         
-        elif 'path' in parsed_query:
-            # Path-only search
-            # If multiple path values, each narrows down the results (AND operation)
-            results = []
-            first_search = True
-            
+        if not used_qualifiers.issubset(supported_qualifiers):
+            unsupported = used_qualifiers - supported_qualifiers
+            logger.warning(f"Ignoring unsupported qualifiers: {unsupported}")
+        
+        results = None
+        
+        # Process each qualifier type and progressively filter results (it's still AND)
+        if 'path' in parsed_query:
             for path in parsed_query['path']:
-                logger.debug(f"Processing path filter: '{path}'")
-                if first_search:
-                    results = self.db.search_by_path(path)
-                    logger.debug(f"First path search returned {len(results)} results")
-                    first_search = False
-                else:
-                    # Filter the current results further
-                    path_results = self.db.search_by_path(path)
-                    logger.debug(f"Additional path search returned {len(path_results)} results")
-                    path_dict = {result['path']: result for result in path_results}
-                    results = [result for result in results if result['path'] in path_dict]
-                    logger.debug(f"After filtering, {len(results)} results remain")
-                
-                # If we've filtered to nothing, no need to continue
+                logger.debug(f"Filtering by path: '{path}'")
+                path_results = self.db.search_by_path(path)
+                results = self._filter_results(results, path_results)
                 if not results:
-                    logger.info("Path filtering resulted in no matches")
+                    logger.info("No results match path criteria")
                     return []
-            
-            logger.info(f"Path search completed with {len(results)} results")
-            return results
         
-        elif 'content' in parsed_query:
-            # Content-only search
-            # If multiple content values, each narrows down the results (AND operation)
-            results = []
-            first_search = True
-            
+        if 'content' in parsed_query:
             for content in parsed_query['content']:
-                logger.debug(f"Processing content filter: '{content}'")
-                if first_search:
-                    results = self.db.search_by_content(content)
-                    logger.debug(f"First content search returned {len(results)} results")
-                    first_search = False
-                else:
-                    # Same as before, filter down
-                    content_results = self.db.search_by_content(content)
-                    logger.debug(f"Additional content search returned {len(content_results)} results")
-                    content_dict = {result['path']: result for result in content_results}
-                    results = [result for result in results if result['path'] in content_dict]
-                    logger.debug(f"After filtering, {len(results)} results remain")
-                    
-                # Same as before
+                logger.debug(f"Filtering by content: '{content}'")
+                content_results = self.db.search_by_content(content)
+                results = self._filter_results(results, content_results)
                 if not results:
-                    logger.info("Content filtering resulted in no matches")
+                    logger.info("No results match content criteria")
                     return []
-                    
-            logger.info(f"Content search completed with {len(results)} results")
-            return results
+                
+        if 'extension' in parsed_query:
+            for extension in parsed_query['extension']:
+                logger.debug(f"Filtering by extension: '{extension}'")
+                extension_results = self.db.search_by_extension(extension)
+                results = self._filter_results(results, extension_results)
+                if not results:
+                    logger.info("No results match extension criteria")
+                    return []
+                
+        # TODO: Add more criteria
+            
+        logger.info(f"Search completed with {len(results) if results else 0} results")
+        return results or []
         
-        else:
-            # Potential to add later here.
-            logger.info("No handlers for the provided query qualifiers")
-            return []
+    def _filter_results(self, current_results, new_results):
+        """Helper method to filter results based on previous results"""
+        if current_results is None:
+            return new_results
+            
+        new_dict = {result['path']: result for result in new_results}
+        filtered = [result for result in current_results if result['path'] in new_dict]
+        logger.debug(f"Filtered from {len(current_results)} to {len(filtered)} results")
+        return filtered
 
     def _parse_query(self, query: str) -> tuple[Dict[str, str], str]:
         """
@@ -155,7 +143,7 @@ class SearchSelector:
             
         parsed_query = defaultdict(list)
         
-        # Can match path:c\Bingus\Whatever and path:"Biggus Dickus"
+        # Can match path:c\Bingus\Whatever and content:"Biggus Dickus"
         pattern = r'(\w+):(?:"([^"]+)"|([^\s]+))'
 
         #This returns 3 matches: match[0,1,2]. 

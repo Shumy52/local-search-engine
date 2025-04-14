@@ -158,52 +158,6 @@ class PathSearchStrategy(SearchStrategy):
             logger.error(f"Error searching by path: {e}")
             return []
 
-
-class PathAndContentSearchStrategy(SearchStrategy):
-    def execute(self, db_connection, path: str, content: Union[str, List[str]]) -> List[Dict[str, str]]:
-        logger.debug(f"Searching by path: '{path}' and content: '{content}'")
-        try:
-            # First get path results using the path search strategy
-            path_strategy = PathSearchStrategy()
-            path_matches = path_strategy.execute(db_connection, path)
-            
-            if not path_matches:
-                logger.debug("No path matches found, returning empty results")
-                return []
-                
-            # Extract file paths to filter with content search
-            path_ids = [result["path"] for result in path_matches]
-            
-            # Handle content search
-            if isinstance(content, list):
-                search_query = " & ".join(content)
-            else:
-                search_query = " & ".join(content.split())
-                
-            tsquery = f"to_tsquery('english', '{search_query}')"
-            like_content = f"%{content}%" if not isinstance(content, list) else "%"
-            
-            query = f"""
-            SELECT DISTINCT f.filename, f.path
-            FROM files f
-            WHERE f.path = ANY(%s) AND (
-                f.search_vector @@ {tsquery} OR
-                f.filename ILIKE %s OR
-                f.content ILIKE %s
-            )
-            ORDER BY filename
-            """
-            
-            with db_connection.cursor() as cursor:
-                cursor.execute(query, (path_ids, like_content, like_content))
-                results = cursor.fetchall()
-                logger.debug(f"Path and content search found {len(results)} results")
-                return [{"filename": row[0], "path": row[1]} for row in results]
-        except Exception as e:
-            logger.error(f"Error searching by path and content: {e}")
-            return []
-
-
 class SearchManager:
     def __init__(self, db_connection):
         """
@@ -217,7 +171,6 @@ class SearchManager:
             'content': ContentSearchStrategy(),
             'multi_word': MultiWordSearchStrategy(),
             'path': PathSearchStrategy(),
-            'path_and_content': PathAndContentSearchStrategy()
         }
     
     def search(self, strategy_name: str, *args, **kwargs) -> List[Dict[str, str]]:
@@ -250,9 +203,6 @@ class SearchManager:
     
     def search_by_path(self, path: str) -> List[Dict[str, str]]:
         return self.search('path', path)
-        
-    def search_by_path_and_content(self, path: str, content: Union[str, List[str]]) -> List[Dict[str, str]]:
-        return self.search('path_and_content', path, content)
     
     def register_strategy(self, name: str, strategy: SearchStrategy) -> None:
         """

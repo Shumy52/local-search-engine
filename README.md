@@ -21,23 +21,27 @@ A file indexing and searching tool with a web interface that allows you to crawl
 ## Installation
 
 1. Clone the repository
+
 ```bash
 git clone https://github.com/Shumy52/local-search-engine.git
 cd local-search-engine
 ```
 
 2. Create and activate a virtual environment
+
 ```bash
 python -m venv venv
 venv\Scripts\activate
 ```
 
 3. Install dependencies
+
 ```bash
 pip install -r requirements.txt
 ```
 
 4. Create a `.env` file based on `.env.example`
+
 ```
 DB_NAME=your_db_name
 DB_USER=your_username
@@ -52,13 +56,14 @@ FLASK_SECRET_KEY=your_random_key
 Before running the application:
 
 1. Ensure your PostgreSQL database is running
-2. Update the default indexing path in `Code/main.py` if needed (will be fixed in future)
+2. Make sure your PC is on... I guess
 
 ## Usage
 
 ### Standard Search
 
 1. Start the main application
+
 ```bash
 python -m Code.main
 ```
@@ -70,11 +75,13 @@ python -m Code.main
 ### Distributed Search (Index-less)
 
 1. Start the main application
+
 ```bash
 python -m Code.main
 ```
 
 2. Start the search manager (in a separate terminal)
+
 ```bash
 python -m Code.MiddleManagement.IndexlessQuery.SearchManager
 ```
@@ -84,9 +91,9 @@ python -m Code.MiddleManagement.IndexlessQuery.SearchManager
 ## Project Structure
 
 - `Code/`: Main application code
-   - `Database/`: Database connection and management
-   - `MiddleManagement/`: File indexing and search utilities
-   - `IndexlessQuery/`: Distributed search system
+  - `Database/`: Database connection and management
+  - `MiddleManagement/`: File indexing and search utilities
+  - `IndexlessQuery/`: Distributed search system
 - `Templates/`: HTML templates for web interface
 - `Docs/`: Documentation and architecture diagrams
 
