@@ -52,6 +52,7 @@ class ContentSearchStrategy(SearchStrategy):
                 f.path ILIKE %s
             ORDER BY rank DESC
             """
+            
             with db_connection.cursor() as cursor:
                 cursor.execute(query, (like_term, like_term))
                 results = cursor.fetchall()

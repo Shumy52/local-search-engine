@@ -1,50 +1,93 @@
-## Local search engine
+# Local Search Engine
 
----
+A file indexing and searching tool with a web interface that allows you to crawl through directories, store file information in a database, and perform powerful searches.
 
-GALBAZA ALEXANDRU-MIHAI
+## Features
 
-This project was made during my studies at UTCN, in order to learn some OOP stuff.
+- Recursive directory crawling and file indexing
+- Full-text search with PostgreSQL (with GIN indexing)
+- Path-based, content-based, and extension-based search
+- Distributed search capabilities with multiple worker processes
+- Simple web interface for searching and browsing results
 
-It's a simple index'n search tool with a web interface. All it does it crawl through a given folder recursively, adding all it can to a database, then running queries in said database.
+## Requirements
 
-For the moment only for windows.
+- Python 3.6+
+- PostgreSQL database
+- Windows OS (currently)
 
----
+## Installation
 
-### Install instuctions
-
-1. Clone the repo to your desired location
-2. Setup a venv for that, using: (assuming you have venv installed)
-
+1. Clone the repository
 ```bash
-python -m venv myvenv
+git clone https://github.com/Shumy52/local-search-engine.git
+cd local-search-engine
 ```
 
-3. Install the requirements using:
+2. Create and activate a virtual environment
+```bash
+python -m venv venv
+venv\Scripts\activate
+```
 
+3. Install dependencies
 ```bash
 pip install -r requirements.txt
 ```
 
-4. Being at the root of the project, run
-   ```bash
-   python -m Code.main
-   ```
+4. Create a `.env` file based on `.env.example`
+```
+DB_NAME=your_db_name
+DB_USER=your_username
+DB_HOST=your_host
+DB_PASSWORD=your_password
+DB_PORT=5432
+FLASK_SECRET_KEY=your_random_key
+```
 
-### MUST DOs BEFORE RUNNING:
+## Configuration
 
-1. Have a postgres DB up and running. Change the connection details in DBManager.py
-2. Change the default indexing path in main.py.
+Before running the application:
 
-### Enjoy!
+1. Ensure your PostgreSQL database is running
+2. Update the default indexing path in `Code/main.py` if needed (will be fixed in future)
 
-1. Go to localhost:5000
-2. There the menus should be self-explanatory, not quite rocket science yet
+## Usage
 
----
+### Standard Search
 
-### Regarding the index-less search:
+1. Start the main application
+```bash
+python -m Code.main
+```
 
-- 2 separate apps will need to be run. One is main.py and the other is SearchManager.py, found in Code/IndexlessQuery.
-- These will occupy ports 5000 - 5004
+2. Open your browser and navigate to `http://localhost:5000`
+3. Index a directory by entering its path and clicking "Index"
+4. Search for files using the search bar
+
+### Distributed Search (Index-less)
+
+1. Start the main application
+```bash
+python -m Code.main
+```
+
+2. Start the search manager (in a separate terminal)
+```bash
+python -m Code.MiddleManagement.IndexlessQuery.SearchManager
+```
+
+3. Use the "Distributed Search" option in the web interface
+
+## Project Structure
+
+- `Code/`: Main application code
+   - `Database/`: Database connection and management
+   - `MiddleManagement/`: File indexing and search utilities
+   - `IndexlessQuery/`: Distributed search system
+- `Templates/`: HTML templates for web interface
+- `Docs/`: Documentation and architecture diagrams
+
+## License
+
+My licence is that I made it the fuck up. GNU open-source or some stuff.
