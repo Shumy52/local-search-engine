@@ -93,7 +93,7 @@ python -m Code.MiddleManagement.IndexlessQuery.SearchManager
 - `Code/`: Main application code
   - `Database/`: Database connection and management
   - `MiddleManagement/`: File indexing and search utilities
-  - `IndexlessQuery/`: Distributed search system
+    - `IndexlessQuery/`: Distributed search system
 - `Templates/`: HTML templates for web interface
 - `Docs/`: Documentation and architecture diagrams
 
