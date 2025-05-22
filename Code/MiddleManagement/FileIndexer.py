@@ -43,10 +43,12 @@ class FileIndexer:
 
                         # The add_file method will trigger the search_vector update
                         if not self.db.add_file(file_data):
-                            self.logger.error(f"Failed to add file to database: {p}")
+                            raise Exception("Cannot add to database, critical malfunction")
+                            # self.logger.error(f"Failed to add file to database: {p}") # I don't know if we need this anymore.
 
                     except Exception as e:
-                        self.logger.error(f"Error indexing file {p}: {e}")
+                        raise Exception(f"Misc exception in indexing: {e}")
+                        # self.logger.error(f"Error indexing file {p}: {e}")
 
                 elif p.is_dir():
                     self.index_path(p)  # Recurse into subdirectories

@@ -1,6 +1,7 @@
 from flask import Flask, flash, jsonify, request, render_template, redirect, url_for
 from dotenv import load_dotenv
 import os
+import psycopg2
 import requests
 
 from .Database.DBConnection import DBConnection
@@ -63,16 +64,23 @@ def search():
     """
     Handle search requests and render the search results.
     """
-    query = request.args.get('q', '')
-    results = search_selector.search_prompt(query)
-    
-    widgets = widget_manager.get_widgets_for_query(query)
-    
-    return render_template('search-result.html', 
-                          results=results, 
-                          query=query,
-                          widgets=widgets)  
-
+    try:
+        query = request.args.get('q', '')
+        results = search_selector.search_prompt(query)
+        
+        widgets = widget_manager.get_widgets_for_query(query)
+        
+        return render_template('search-result.html', 
+                            results=results, 
+                            query=query,
+                            widgets=widgets)  
+    except Exception as e:
+        app.logger.error(f"Search error: {e}")
+        # Pass the error to the template
+        return render_template('search-result.html',
+                              query=query, # Could mean trouble. What if we don't init query?
+                              results=[], # I think we will most of the time...
+                              system_error=f"Error performing search: {str(e)}")
 
 @app.route("/api/search", methods=["GET"])
 def api_search():
@@ -107,17 +115,24 @@ def set_index_path():
     """
     Set a new index path and re-index the files in the database.
     """
-    new_path = request.form.get('path', '')
+    try:
+        new_path = request.form.get('path', '')
 
-    # Cleanup: Remove files from the database that no longer exist
-    existing_files = file_manager.get_all_files()
-    for f in existing_files:
-        if not os.path.exists(f['path']):
-            file_manager.remove_file(f['id'])
+        # Cleanup: Remove files from the database that no longer exist
+        existing_files = file_manager.get_all_files()
+        for f in existing_files:
+            if not os.path.exists(f['path']):
+                file_manager.remove_file(f['id'])
 
-    file_indexer.index_path(new_path)
-    flash(f"Successfully indexed path: {new_path}")
-    return redirect(url_for('home'))
+        file_indexer.index_path(new_path)
+        flash(f"Successfully indexed path: {new_path}")
+        return redirect(url_for('home'))
+    except Exception as e:
+        app.logger.error(f"Search error: {e}")
+        # Pass the error to the template
+        flash(f"There's something wrong with the indexing: {e}")
+        return redirect(url_for('home'))
+
 
 @app.route('/cache/stats')
 def cache_stats():
@@ -140,6 +155,24 @@ def main():
     schema_manager.init_database()
     app.run(debug=True)
 
+@app.errorhandler(Exception)
+def handle_exception(e):
+    """Handle all uncaught exceptions"""
+    app.logger.error(f"Unhandled exception: {str(e)}", exc_info=True)
+    
+    # For database connection errors
+    if isinstance(e, psycopg2.OperationalError):
+        error_message = "Database connection failed. Please check your configuration."
+    else:
+        error_message = f"An unexpected error occurred: {str(e)}"
+    
+    # Return different responses based on request type
+    if request.path.startswith('/api/'):
+        return jsonify({"error": error_message}), 500
+    else:
+        return render_template('search-form.html', 
+                              current_path=DEFAULT_PATH, 
+                              system_error=error_message), 500
 
 if __name__ == "__main__":
     main()

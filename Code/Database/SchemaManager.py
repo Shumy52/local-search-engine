@@ -31,6 +31,7 @@ class SchemaManager:
             print("Database schema initialized successfully.")
         except Exception as e:
             print(f"Error initializing database schema: {e}")
+            raise Exception(f"Error connecting to DB to init schema {e}")
 
     def _create_schema(self, cursor):
         """Creates the database schema."""
