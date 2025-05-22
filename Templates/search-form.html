@@ -1,20 +1,145 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Local Search</title>
+  <title>Local Search</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    
+    .container {
+      background-color: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+    
+    h1 {
+      color: #333;
+      margin-bottom: 20px;
+    }
+    
+    .search-form {
+      margin-bottom: 20px;
+      padding: 15px;
+      background-color: #f8f9fa;
+      border-radius: 5px;
+      border: 1px solid #e9ecef;
+    }
+    
+    .search-form h3 {
+      margin-top: 0;
+      color: #495057;
+    }
+    
+    input[type="text"] {
+      padding: 10px;
+      border: 1px solid #ced4da;
+      border-radius: 4px;
+      width: 100%;
+      margin-bottom: 10px;
+      box-sizing: border-box;
+    }
+    
+    button {
+      background-color: #007bff;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background-color 0.2s;
+    }
+    
+    button:hover {
+      background-color: #0069d9;
+    }
+    
+    .cache-controls {
+      margin-top: 20px;
+      padding: 15px;
+      background-color: #f8f9fa;
+      border-radius: 5px;
+      border: 1px solid #e9ecef;
+    }
+    
+    .cache-controls h3 {
+      margin-top: 0;
+      color: #495057;
+    }
+    
+    #flash-messages {
+      padding: 10px;
+      margin-bottom: 15px;
+      border-radius: 4px;
+      background-color: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+  </style>
 </head>
 <body>
-    <!--  Courtesy of geekforgeeks and stackoverflow -->
+  <div class="container">
+    <h1>Local Search Engine</h1>
+    
     {% with messages = get_flashed_messages() %}
-    {% if messages %}
-      <div id="flash-messages">
-        {% for msg in messages %}
-          <div>{{ msg }}</div>
-        {% endfor %}
+      {% if messages %}
+        <div id="flash-messages">
+          {% for msg in messages %}
+            <div>{{ msg }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <div class="search-form">
+      <h3>Distributed Search</h3>
+      <form action="{{ url_for('api_search') }}">
+        <input type="text" name="q" placeholder="Search..." />
+        <input type="text" name="path" placeholder="{{ current_path }}" value="{{ current_path }}" />
+        <button type="submit">Distributed Search</button>
+      </form>
+    </div>
+
+    <div class="search-form">
+      <h3>Local Search</h3>
+      <form action="{{ url_for('search') }}">
+        <input type="text" name="q" placeholder="Search..." />
+        <button type="submit">Search</button>
+      </form>
+    </div>
+    
+    <div class="search-form">
+      <h3>Index Configuration</h3>
+      <form action="{{ url_for('set_index_path') }}" method="POST">
+        <label for="indexPath">Folder to Index:</label>
+        <input type="text" id="indexPath" name="path" value="{{ current_path }}" />
+        <button type="submit">Index</button>
+      </form>
+    </div>
+
+    <div class="cache-controls">
+      <h3>Cache Management</h3>
+      <div>
+        <p>Cache Statistics:</p>
+        <ul>
+          <li>Total entries: <span id="cache-total">0</span></li>
+          <li>Active entries: <span id="cache-active">0</span></li>
+          <li>Expired entries: <span id="cache-expired">0</span></li>
+          <li>Memory usage: <span id="cache-memory">0 KB</span></li>
+        </ul>
       </div>
-    {% endif %}
-  {% endwith %}
-  <!-- Jinja2 syntax :D -->
+      <form action="{{ url_for('clear_cache') }}" method="POST" style="display: inline-block; margin-right: 10px;">
+        <button type="submit">Clear Cache</button>
+      </form>
+      <button onclick="fetchCacheStats()">Refresh Stats</button>
+    </div>
+  </div>
 
   <script>
     setTimeout(() => {
@@ -23,44 +148,20 @@
         fm.style.display = 'none';
       }
     }, 3000);
+    
+    function fetchCacheStats() {
+      fetch('/cache/stats')
+        .then(response => response.json())
+        .then(data => {
+          document.getElementById('cache-total').textContent = data.total_entries;
+          document.getElementById('cache-active').textContent = data.active_entries;
+          document.getElementById('cache-expired').textContent = data.expired_entries;
+          document.getElementById('cache-memory').textContent = data.memory_usage_estimate;
+        })
+        .catch(error => console.error('Error fetching cache stats:', error));
+    }
+    
+    window.onload = fetchCacheStats;
   </script>
-
-    <form action="{{ url_for('api_search') }}">
-      <input type="text" name="q" placeholder="Search..." />
-      <input type="text" name="path" placeholder="{{ current_path }}" value="{{ current_path }}" />
-      <button type="submit">Distributed Search</button>
-    </form>
-
-    <!-- Search -->
-    <form action="{{ url_for('search') }}">
-        <input type="text" name="q" placeholder="Search..." />
-        <button type="submit">Search</button>
-    </form>
-    
-    <!-- Can't get full paths through this method, security reasons. This one's a bust -->
-    
-    <form action="{{ url_for('set_index_path') }}" method="POST">
-        <label for="indexPath">Folder to Index:</label>
-        <input type="text" id="indexPath" name="path" value="{{ current_path }}" style="width: 100%; max-width: 600px;" />
-        <button type="submit">Index</button>
-    </form>
-
-
-    <!-- <script>
-        function selectFolder() {
-          const input = document.createElement('input');
-          input.type = 'file';
-          input.webkitdirectory = true; // Chrome-based browsers
-          input.onchange = event => {
-            if (event.target.files.length) {
-              // folder name from the first file
-              const path = event.target.files[0].webkitRelativePath;
-                // Note: 
-              document.getElementById('indexPath').value = path;
-            }
-          };
-          input.click();
-        }
-    </script> -->
 </body>
-</html>
+</html></div></form>

@@ -11,6 +11,7 @@ from .Database.SchemaManager import SchemaManager
 from .MiddleManagement.FileIndexer import FileIndexer
 from .MiddleManagement.SearchSelector import SearchSelector
 from .MiddleManagement.WidgetManager import WidgetManager
+from .MiddleManagement.SearchSelectorProxy import SearchSelectorProxy
 
 # Initialize Flask app
 app = Flask(__name__, template_folder='../Templates')
@@ -37,7 +38,8 @@ schema_manager = SchemaManager(db_connection)
 file_manager = FileManager(db_connection)
 search_manager = SearchManager(db_connection)
 file_indexer = FileIndexer(file_manager)
-search_selector = SearchSelector(search_manager)
+real_search_selector = SearchSelector(search_manager)
+search_selector = SearchSelectorProxy(real_search_selector)
 widget_manager = WidgetManager()
 
 
@@ -47,7 +49,6 @@ project_dir = os.path.dirname(os.path.dirname(current_file)) # ../../WhereIamRig
 DEFAULT_PATH = project_dir
 
 MANAGER_ADDRESS = "http://localhost:5001/api/search"
-
 
 @app.route('/')
 def home():
@@ -118,6 +119,22 @@ def set_index_path():
     flash(f"Successfully indexed path: {new_path}")
     return redirect(url_for('home'))
 
+@app.route('/cache/stats')
+def cache_stats():
+    """
+    Display cache statistics.
+    """
+    stats = search_selector.get_cache_stats()
+    return jsonify(stats)
+
+@app.route('/cache/clear', methods=['POST'])
+def clear_cache():
+    """
+    Clear the search cache.
+    """
+    search_selector.clear_cache()
+    flash("Search cache cleared successfully")
+    return redirect(url_for('home'))
 
 def main():
     schema_manager.init_database()
