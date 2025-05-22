@@ -10,7 +10,7 @@ from .Database.SchemaManager import SchemaManager
 
 from .MiddleManagement.FileIndexer import FileIndexer
 from .MiddleManagement.SearchSelector import SearchSelector
-
+from .MiddleManagement.WidgetManager import WidgetManager
 
 # Initialize Flask app
 app = Flask(__name__, template_folder='../Templates')
@@ -38,6 +38,7 @@ file_manager = FileManager(db_connection)
 search_manager = SearchManager(db_connection)
 file_indexer = FileIndexer(file_manager)
 search_selector = SearchSelector(search_manager)
+widget_manager = WidgetManager()
 
 
 # Default path for indexing
@@ -63,7 +64,13 @@ def search():
     """
     query = request.args.get('q', '')
     results = search_selector.search_prompt(query)
-    return render_template('search-result.html', results=results, query=query)
+    
+    widgets = widget_manager.get_widgets_for_query(query)
+    
+    return render_template('search-result.html', 
+                          results=results, 
+                          query=query,
+                          widgets=widgets)  
 
 
 @app.route("/api/search", methods=["GET"])

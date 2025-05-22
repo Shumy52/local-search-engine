@@ -2,18 +2,122 @@
 <html>
 <head>
     <title>Search Results</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        
+        .results-container {
+            display: flex;
+            flex-wrap: wrap;
+        }
+        
+        .search-results {
+            flex: 2;
+            min-width: 300px;
+        }
+        
+        .widgets-container {
+            flex: 1;
+            min-width: 250px;
+            margin-left: 20px;
+        }
+        
+        .search-widget {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 20px;
+            background-color: #f9f9f9;
+        }
+        
+        /* Calculator widget styles */
+        .calculator input {
+            width: 100%;
+            margin-bottom: 10px;
+            padding: 8px;
+            font-size: 16px;
+        }
+        
+        .calc-buttons {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 5px;
+        }
+        
+        .calc-buttons button {
+            padding: 10px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        
+        /* Weather widget styles */
+        .weather-widget input {
+            width: 70%;
+            padding: 8px;
+            margin-right: 5px;
+        }
+        
+        /* Timer widget styles */
+        .timer-controls {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 10px;
+        }
+        
+        .timer-controls input {
+            width: 50px;
+            padding: 5px;
+        }
+        
+        #timer-display {
+            font-size: 24px;
+            text-align: center;
+            margin-top: 10px;
+        }
+        
+        /* Converter widget styles */
+        .converter-widget select, .converter-widget input {
+            margin: 5px 0;
+            padding: 5px;
+        }
+        
+        .converter-inputs {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 5px;
+            margin-top: 10px;
+        }
+    </style>
 </head>
 <body>
     <h1>Results for: {{ query }}</h1>
-    <ul>
-    {% for item in results %}
-        <li>
-            {{ item.filename }}
-            <!-- Passing query so user returns to results after file opens -->
-            <a href="{{ url_for('open_file', path=item.path, q=query) }}">Open</a>
-        </li>
-    {% endfor %}
-    </ul>
+    
+    <div class="results-container">
+        <div class="search-results">
+            <ul>
+            {% for item in results %}
+                <li>
+                    {{ item.filename }}
+                    <!-- Passing query so user returns to results after file opens -->
+                    <a href="{{ url_for('open_file', path=item.path, q=query) }}">Open</a>
+                </li>
+            {% endfor %}
+            </ul>
+        </div>
+        
+        {% if widgets %}
+        <div class="widgets-container">
+            {% for widget in widgets %}
+                {% include widget.template %}
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+    
     <a href="{{ url_for('home') }}">Back to search</a>
 </body>
 </html>
